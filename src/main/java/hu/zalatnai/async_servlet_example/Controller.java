@@ -51,6 +51,7 @@ public class Controller {
     //to suppress exceptions being logged twice, see https://jira.spring.io/browse/SPR-12608
     @RequestMapping(path = "/nonblocking", method = RequestMethod.GET)
     public CompletableFuture<Result> getResultNonBlocking() {
+        /*
         CompletableFuture<Result> result = new CompletableFuture<>();
 
         CompletableFuture<Try<Cat>> tryCatFuture = asyncCatService.getCat();
@@ -73,7 +74,18 @@ public class Controller {
                 result.completeExceptionally(tryResult.getCause());
             }
         });
+        */
 
+        CompletableFuture<Try<Cat>> tryCatFuture = asyncCatService.getCat();
+        CompletableFuture<Try<Dog>> tryDogFuture = asyncDogService.getDog();
+
+        return CompletableFuture.allOf(tryCatFuture, tryDogFuture)
+                .thenCompose((ignored) -> {
+                    Cat cat = tryCatFuture.join().get();
+                    Dog dog = tryDogFuture.join().get();
+
+                    return CompletableFuture.completedFuture(new Result(cat.getName() + dog.getName()));
+                });
         /*
         //Unfortunately vavr's for comprehension BLOCKS (calls get on the future) the thread.
         Future<Try<Cat>> tryCatFuture = Future.fromCompletableFuture(asyncCatService.getCat());
@@ -101,8 +113,5 @@ public class Controller {
             return Try.success(null);
         });
         */
-
-        LOGGER.info("returned");
-        return result;
     }
 }
